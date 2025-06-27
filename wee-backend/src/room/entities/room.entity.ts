@@ -1,8 +1,8 @@
 import { BaseEntity, Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
-import { UserEntity } from "./user.entity";
-import { MessageEntity } from "./message.entity";
+import { MessageEntity } from "../../openai/entities/message.entity";
+import { UserEntity } from "src/user/entities/user.entity";
 
-@Entity('Room')
+@Entity('room')
 export class RoomEntity extends BaseEntity{
 
   @PrimaryGeneratedColumn({ type: 'int' })

@@ -5,7 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UserModule } from './user/user.module';
-import { OpenaiModule } from './openai/openai.module';
+import { ChatModule } from './openai/chat.module';
 import { AuthModule } from './auth/auth.module';
 import { RoomModule } from './room/room.module';
 
@@ -25,13 +25,13 @@ import { RoomModule } from './room/room.module';
         username: configService.get('DB_USER'),
         password: configService.get('DB_PASSWORD'),
         entities: [path.join(__dirname, '../**/*.entity.{js, ts}')],
-        synchronize: false,
+        synchronize: true,
         logging: true,
         timezone: 'local',
       }),
     }),
     UserModule,
-    OpenaiModule,
+    ChatModule,
     AuthModule,
     RoomModule,
 

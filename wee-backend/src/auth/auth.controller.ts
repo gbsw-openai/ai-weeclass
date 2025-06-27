@@ -1,45 +1,55 @@
-import { Body, Controller, Post, Req, UseGuards, Res, Get, BadRequestException, HttpException } from '@nestjs/common';  // Res 추가
+import {
+  Body,
+  Controller,
+  Post,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LocalAuthGuard } from 'src/guards/local-auth.guard';
-import { Request, Response } from 'express';
-import { CreateUserDto } from 'src/dtos/user.dto';
+import { CreateUserDto } from 'src/user/dto/create-user.dto';
+import { CreateAccessTokenByRefreshToken } from './dto/create-AccessTokenByRefreshToekn.dto';
+import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
-
-@Controller('/auth')
+@Controller('/api/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @UseGuards(LocalAuthGuard)
   @Post('/login')
-  async logIn(@Body() createUserDTO: CreateUserDto, @Res() res: Response) {
+  @ApiOperation({ summary: '로그인' })
+  @ApiBody({
+    schema: {
+      example: {
+        username: 'suhwan3118',
+        password: 'hwan1234@',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    schema: {
+      example: {
+        statusCode: 400,
+        message: '잘못된 입력값입니다.',
+      },
+    },
+  })
+  async logIn(@Body() createUserDTO: CreateUserDto) {
     const user = await this.authService.validateUser(createUserDTO);
-    await this.authService.logIn(user, res);
-    return res.send({
-      message: 'success'
-    });
+    const tokens = await this.authService.logIn(user);
+    return tokens;
   }
 
-  @Get('/cookies')
-  getCookies(@Req() req: Request, @Res() res: Response): any {
-    try {
-      const jwt = req.cookies['access_token'];
-      if (!jwt) {
-        throw new BadRequestException('쿠키가 존재하지 않습니다.');
-      }
-      return res.send(jwt);
-    } catch (error) {
-      throw new HttpException('쿠키 조회 중 문제가 발생했습니다.', 500);
-    }
-  }
-
-  @UseGuards(LocalAuthGuard)
-  @Post('/logout')
-  logout(@Req() req: Request, @Res() res: Response): any {
-    res.cookie('jwt', '', {
-        maxAge: 0
-    })
-    return res.send({
-        message: 'success'
-    })
+  @Post('/login/token')
+  @ApiOperation({ summary: '토큰 재발급' })
+  @ApiBody({
+    schema: {
+      example: {
+        refreshToken: 'ey.....',
+      },
+    },
+  })
+  async refreshToken(
+    @Body() dto: CreateAccessTokenByRefreshToken,
+  ) {
+    const tokens = await this.authService.refreshAccessToken(dto);
+    return tokens;
   }
 }

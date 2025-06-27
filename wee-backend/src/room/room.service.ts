@@ -1,63 +1,72 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {  Injectable, } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CreateRoomDto } from 'src/dtos/create-room.dto';
-import { RoomEntity } from 'src/entities/room.entity';
-import { UserService } from 'src/user/user.service';
+import { CreateRoomDto } from 'src/room/dto/create-room.dto';
+import { RoomEntity } from 'src/room/entities/room.entity';
 import { Repository } from 'typeorm';
-import { AuthService } from 'src/auth/auth.service';
+import { AccessDiniedException, RoomNotFoundException } from 'src/exception/service.exception';
+import { UpdateRoomDto } from './dto/update-room.dto';
 
 @Injectable()
 export class RoomService {
     constructor(
         @InjectRepository(RoomEntity)
         private readonly roomRepository: Repository<RoomEntity>,
-        private readonly userService: UserService,
-        private readonly authService: AuthService,
     ) {}
 
-    async createRoom(createRoomDto: CreateRoomDto, token: string): Promise<RoomEntity> {
-    
-        const decoded = await this.authService.decodeToken(token);
+    async createRoom(createRoomDto: CreateRoomDto, userId: number): Promise<RoomEntity> {
 
         const room = await this.roomRepository.save({
             name: createRoomDto.name,
-            userId: decoded.id
+            userId: userId,
           });
 
           return room;
     }
-    //good
-    async findOneRoom(id: number): Promise<RoomEntity> {
-        return await this.roomRepository.findOne({
-            where: {
-                id,
-            },
-        });
+
+    async findOneRoom(id: number, userId: number): Promise<RoomEntity> {
+        const room = await this.roomRepository.findOne({ where: { id, userId } });
+      
+        if (!room) {
+          throw RoomNotFoundException('채팅방을 찾을 수 없습니다.')
+        }
+      
+        return room;
+      }
+
+    async findAllRoom(userId: number): Promise<RoomEntity[]> {
+        return await this.roomRepository.find({
+            where: { userId }
+        })
     }
 
-    //good
-    async findAllRoom(): Promise<RoomEntity[]> {
-        return await this.roomRepository.find();
+    async modifyRoom(updateRoomDto: UpdateRoomDto, id: number, userId: number): Promise<RoomEntity>{
+        const room = await this.findOneRoom(id, userId);
+        
+        if(room.userId !== userId) {
+            throw AccessDiniedException('방을 수정할 수 있는 권한이 없습니다.');
+        }
+
+        await this.roomRepository.update(id, updateRoomDto);
+        const updateRoom = await this.findOneRoom(id, userId);
+        return updateRoom;
     }
 
-    async deleteRoom(id: number, token: string): Promise<void> {
-       const decoded = await this.authService.decodeToken(token);
+    async deleteRoom(id: number, userId: number): Promise<void> {
 
-       const room = await this.findOneRoom(id);
+       const room = await this.findOneRoom(id, userId);
 
        if (!room) {
-           throw new NotFoundException(`${id}의 id를 가진 방을 찾지 못했습니다`);
+           throw RoomNotFoundException('채팅방을 찾을 수 없습니다.');
        }
    
-       if (room.userId !== decoded.id) {
-           throw new ForbiddenException('자기 자신의 방만 삭제할 수 있습니다');
+       if (room.userId !== userId) {
+           throw AccessDiniedException('방을 삭제할 권한이 없습니다.');
        }
    
-       // 방 삭제
        await this.roomRepository.delete(id);
     }
 
-    async deleteAllRooms(): Promise<void>{
-        await this.roomRepository.delete({});
+    async deleteAllRooms(userId: number): Promise<void>{
+        await this.roomRepository.delete({ userId });
     }
 }

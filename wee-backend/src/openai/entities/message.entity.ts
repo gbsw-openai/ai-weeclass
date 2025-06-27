@@ -1,8 +1,8 @@
-import { BaseEntity, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { UserEntity } from './user.entity';
-import { RoomEntity } from './room.entity';
+import { BaseEntity, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Timestamp } from 'typeorm';
+import { RoomEntity } from '../../room/entities/room.entity';
+import { UserEntity } from 'src/user/entities/user.entity';
 
-@Entity('Message')
+@Entity('message')
 export class MessageEntity extends BaseEntity{
   @PrimaryGeneratedColumn({ type: 'int' })
   id: number;
@@ -34,4 +34,7 @@ export class MessageEntity extends BaseEntity{
   @ManyToOne(() => RoomEntity, (room) => room.messages, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'room_id'})
   room: RoomEntity;
+
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
 }
